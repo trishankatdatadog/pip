@@ -17,6 +17,7 @@ repositories: {
 #Repositories: or([for name, _ in repositories {name}])
 
 // Every character in #Path must be a Perl word character, "/", or "*".
+// TODO: refine syntax.
 #Path: =~ #"^[\w/\*]+$"#
 #Mapping: {
 	// The set of target path patterns that must be matched to these repositories.
