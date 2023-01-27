@@ -743,3 +743,31 @@ class ExternallyManagedEnvironment(DiagnosticPipError):
             exc_info = logger.isEnabledFor(VERBOSE)
             logger.warning("Failed to read %s", config, exc_info=exc_info)
         return cls(None)
+
+
+class MapFileError(PipError):
+    """General exception for the map file"""
+
+
+class MapFileCouldNotBeLoaded(MapFileError):
+    """When there are errors while loading the map file"""
+
+    def __init__(
+        self,
+        fname: str,
+        reason: str,
+    ) -> None:
+        super().__init__()
+        self.fname = fname
+        self.reason = reason
+
+    def __str__(self) -> str:
+        return f"Map file {self.fname} could not be loaded: {self.reason}."
+
+
+class InconsistentCLIOptionsWithMapFile(MapFileError):
+    """When there are CLI options inconsistent with the map file"""
+
+    def __str__(self) -> str:
+        return "Cannot use map-file with either no-index, find-links," \
+               " more index-urls than PyPI, extra-index-urls, or no-TLS"

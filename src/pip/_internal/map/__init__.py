@@ -1,2 +1,1 @@
-"""Mapping (TAP 4) code
-"""
+"""Mapping (TAP 4) code"""

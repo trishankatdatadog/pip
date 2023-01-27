@@ -443,6 +443,7 @@ class LinkCollector:
             find_links=find_links,
             index_urls=index_urls,
             no_index=options.no_index,
+            map_file=options.map_file,
         )
         link_collector = LinkCollector(
             session=session,

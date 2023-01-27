@@ -3,10 +3,12 @@ import logging
 import os
 import posixpath
 import urllib.parse
-from typing import List
+from typing import List, Optional
 
 from pip._vendor.packaging.utils import canonicalize_name
 
+from pip._internal.exceptions import InconsistentCLIOptionsWithMapFile
+from pip._internal.map.map import Map
 from pip._internal.models.index import PyPI
 from pip._internal.utils.compat import has_tls
 from pip._internal.utils.misc import normalize_path, redact_auth_from_url
@@ -20,7 +22,7 @@ class SearchScope:
     Encapsulates the locations that pip is configured to search.
     """
 
-    __slots__ = ["find_links", "index_urls", "no_index"]
+    __slots__ = ["find_links", "index_urls", "no_index", "map"]
 
     @classmethod
     def create(
@@ -28,10 +30,19 @@ class SearchScope:
         find_links: List[str],
         index_urls: List[str],
         no_index: bool,
+        map_file: Optional[str] = None,
     ) -> "SearchScope":
         """
         Create a SearchScope object after normalizing the `find_links`.
         """
+        # Start with the map file, as that will conflict with all other
+        # options.
+        _map: Optional[Map] = None
+        if map_file:
+            if no_index or len(find_links) > 0 or index_urls != [PyPI.simple_url] or not has_tls():
+                raise InconsistentCLIOptionsWithMapFile()
+            _map = Map(map_file)
+
         # Build find_links. If an argument starts with ~, it may be
         # a local file relative to a home directory. So try normalizing
         # it and if it exists, use the normalized version.
@@ -62,6 +73,7 @@ class SearchScope:
             find_links=built_find_links,
             index_urls=index_urls,
             no_index=no_index,
+            map=_map,
         )
 
     def __init__(
@@ -69,10 +81,12 @@ class SearchScope:
         find_links: List[str],
         index_urls: List[str],
         no_index: bool,
+        map: Optional[Map] = None,
     ) -> None:
         self.find_links = find_links
         self.index_urls = index_urls
         self.no_index = no_index
+        self.map = map
 
     def get_formatted_locations(self) -> str:
         lines = []

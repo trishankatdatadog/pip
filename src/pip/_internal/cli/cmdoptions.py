@@ -369,6 +369,18 @@ def find_links() -> Option:
     )
 
 
+map_file: Callable[..., Option] = partial(
+    PipOption,
+    "--map-file",
+    dest="map_file",
+    type="path",
+    default=None,
+    metavar="path",
+    help="Path to a single TUF-style TAP 4 map file, "
+    "which helps to prevent dependency confusion attacks.",
+)
+
+
 def trusted_host() -> Option:
     return Option(
         "--trusted-host",
@@ -1043,5 +1055,6 @@ index_group: Dict[str, Any] = {
         extra_index_url,
         no_index,
         find_links,
+        map_file,
     ],
 }
