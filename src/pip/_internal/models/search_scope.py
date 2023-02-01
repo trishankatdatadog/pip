@@ -124,6 +124,19 @@ class SearchScope:
             )
         return "\n".join(lines)
 
+    def mkurl_pypi_url(self, url: str, project_name: str) -> str:
+        loc = posixpath.join(
+            url, urllib.parse.quote(canonicalize_name(project_name))
+        )
+        # For maximum compatibility with easy_install, ensure the path
+        # ends in a trailing slash.  Although this isn't in the spec
+        # (and PyPI can handle it without the slash) some other index
+        # implementations might break if they relied on easy_install's
+        # behavior.
+        if not loc.endswith("/"):
+            loc = loc + "/"
+        return loc
+
     def get_index_urls_locations(self, project_name: str) -> List[str]:
         """Returns the locations found via self.index_urls
 
@@ -131,17 +144,6 @@ class SearchScope:
         use this url_name to produce all locations
         """
 
-        def mkurl_pypi_url(url: str) -> str:
-            loc = posixpath.join(
-                url, urllib.parse.quote(canonicalize_name(project_name))
-            )
-            # For maximum compatibility with easy_install, ensure the path
-            # ends in a trailing slash.  Although this isn't in the spec
-            # (and PyPI can handle it without the slash) some other index
-            # implementations might break if they relied on easy_install's
-            # behavior.
-            if not loc.endswith("/"):
-                loc = loc + "/"
-            return loc
-
-        return [mkurl_pypi_url(url) for url in self.index_urls]
+        return [
+            self.mkurl_pypi_url(url, project_name) for url in self.index_urls
+        ]

@@ -466,8 +466,34 @@ class LinkCollector:
         project_name: str,
         candidates_from_page: CandidatesFromPage,
     ) -> CollectedSources:
+        # When given the map file, look for index_urls there.
+        if self.search_scope.map:
+            # Explore the indices relevant to this project in order of priority.
+            for index_urls in self.search_scope.map.resolve(project_name):
+                logger.debug(f"index_urls: {index_urls}")
+                found = False
+                for index_url in index_urls:
+                    # Form the Simple page URL for this project.
+                    project_url = self.search_scope.mkurl_pypi_url(index_url, project_name)
+                    project_link = Link(project_url)
+                    # FIXME: Issue only a Simple HEAD request, and cache responses?
+                    index_content = _get_index_content(project_link, session=self.session)
+                    if not index_content:
+                        break
+                else:
+                    found = True
+                # NOTE: This is critical to terminating.
+                if found:
+                    logger.debug(f"found {project_name}: {index_urls}")
+                    index_urls_locations = index_urls
+                    break
+            else:
+                index_urls_locations = []
+            logger.debug(f"index_urls_locations: {index_urls_locations}")
+        else:
+            index_urls_locations = self.search_scope.get_index_urls_locations(project_name)
         # The OrderedDict calls deduplicate sources by URL.
-        index_url_sources = collections.OrderedDict(
+        index_url_sources = collections.OrderedDict([
             build_source(
                 loc,
                 candidates_from_page=candidates_from_page,
@@ -475,18 +501,25 @@ class LinkCollector:
                 expand_dir=False,
                 cache_link_parsing=False,
             )
-            for loc in self.search_scope.get_index_urls_locations(project_name)
-        ).values()
-        find_links_sources = collections.OrderedDict(
-            build_source(
-                loc,
-                candidates_from_page=candidates_from_page,
-                page_validator=self.session.is_secure_origin,
-                expand_dir=True,
-                cache_link_parsing=True,
-            )
-            for loc in self.find_links
-        ).values()
+            for loc in index_urls_locations
+        ]).values()
+
+        # When given the map file, find_links is ignored.
+        if self.search_scope.map:
+            find_links_sources = []
+        # Otherwise, find_links is also considered (the previous default behaviour).
+        else:
+            find_links_sources = [
+                build_source(
+                    loc,
+                    candidates_from_page=candidates_from_page,
+                    page_validator=self.session.is_secure_origin,
+                    expand_dir=True,
+                    cache_link_parsing=True,
+                )
+                for loc in self.find_links
+            ]
+        find_links_sources = collections.OrderedDict(find_links_sources).values()
 
         if logger.isEnabledFor(logging.DEBUG):
             lines = [
